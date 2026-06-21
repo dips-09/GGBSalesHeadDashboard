@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Maybank · GGB Sales Head Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --mb-yellow:#ffcf01; --mb-yellow-2:#ffdb45; --mb-amber:#e8ab00; --mb-amber-deep:#a9760b;
+  --ink:#16181d; --ink-2:#5a6472; --ink-3:#8b93a1;
+  --bg:#eef1f6; --card:#ffffff; --line:#e7eaf0; --line-soft:#f0f2f6;
+  --pos:#149a5a; --neg:#e0473f; --black:#000000;
+  --shadow:0 1px 2px rgba(20,24,32,.04), 0 6px 22px rgba(20,24,32,.06);
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+body{font-variant-numeric:tabular-nums;padding-bottom:40px}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+a{color:inherit}
+
+/* ---------- Header ---------- */
+.topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);}
+.topbar-inner{max-width:1480px;margin:0 auto;padding:14px 26px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:38px;height:38px;border-radius:10px;background:var(--mb-yellow);position:relative;overflow:hidden;
+  box-shadow:0 2px 8px rgba(255,207,1,.45);flex:none}
+.mark::before,.mark::after{content:"";position:absolute;inset:0;}
+.mark::before{background:
+   repeating-linear-gradient(125deg, transparent 0 7px, rgba(0,0,0,.92) 7px 11px);
+   transform:translateX(2px)}
+.brand-txt b{font-size:17px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.brand-txt span{display:block;font-size:11px;color:var(--ink-3);font-weight:500;margin-top:3px;letter-spacing:.02em}
+.divider{width:1px;height:30px;background:var(--line);margin:0 4px}
+.page-title{font-size:14px;font-weight:600;color:var(--ink-2)}
+.page-title strong{color:var(--ink);font-weight:700}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink-2);
+  background:var(--line-soft);border:1px solid var(--line);padding:7px 12px;border-radius:999px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 3px rgba(20,154,90,.18)}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:1480px;margin:0 auto;padding:22px 26px 0}
+.section-label{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  margin:24px 2px 12px;display:flex;align-items:center;gap:10px}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---------- Filter bar ---------- */
+.filters{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:16px 18px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;min-width:160px;flex:1}
+.field label{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink-3);text-transform:uppercase}
+.field select{appearance:none;-webkit-appearance:none;background:#fff;border:1.5px solid var(--line);
+  border-radius:10px;padding:10px 34px 10px 12px;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b93a1' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center;transition:border-color .15s,box-shadow .15s}
+.field select:focus{outline:none;border-color:var(--mb-amber);box-shadow:0 0 0 3px rgba(255,207,1,.25)}
+.field select:hover{border-color:#d3d8e2}
+.reset-btn{background:var(--mb-yellow);color:var(--black);border:none;font-weight:700;font-size:13px;
+  padding:11px 22px;border-radius:10px;cursor:pointer;transition:transform .12s,box-shadow .12s,background .15s;
+  box-shadow:0 2px 8px rgba(255,207,1,.4);height:42px}
+.reset-btn:hover{background:#ffd936;transform:translateY(-1px)}
+.reset-btn:active{transform:translateY(0)}
+
+/* ---------- Cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:18px 20px;position:relative}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:13.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.card-sub{font-size:11px;color:var(--ink-3);font-weight:500}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:16px 18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--mb-yellow)}
+.kpi .k-top{display:flex;align-items:center;justify-content:space-between}
+.kpi .k-label{font-size:12px;font-weight:600;color:var(--ink-2)}
+.k-icon{width:34px;height:34px;border-radius:9px;background:rgba(255,207,1,.16);display:grid;place-items:center;color:var(--mb-amber-deep)}
+.k-icon svg{width:18px;height:18px}
+.kpi .k-value{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.05}
+.kpi .k-value small{font-size:15px;font-weight:600;color:var(--ink-2);margin-left:2px}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding-top:2px}
+.delta.up{color:var(--pos)} .delta.down{color:var(--neg)} .delta.flat{color:var(--ink-3)}
+.delta .mo{color:var(--ink-3);font-weight:500;margin-left:2px}
+
+/* Overview composite grid */
+.overview{display:grid;grid-template-columns:2.25fr 1fr;gap:16px;align-items:stretch}
+.left-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.mid-row{display:grid;grid-template-columns:.95fr 1.55fr;gap:16px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* Pipeline + Target small cards */
+.mini .k-value{font-size:25px;font-weight:700;letter-spacing:-.02em}
+.mini .k-value small{font-size:14px}
+.ring-wrap{display:flex;align-items:center;gap:16px}
+.ring{--p:0;width:74px;height:74px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--mb-yellow) calc(var(--p)*1%), var(--line) 0);
+  display:grid;place-items:center;position:relative}
+.ring::after{content:"";position:absolute;inset:8px;background:#fff;border-radius:50%}
+.ring b{position:relative;z-index:1;font-size:17px;font-weight:700}
+.ring-meta{font-size:12px;color:var(--ink-2);line-height:1.6}
+.ring-meta b{color:var(--ink);font-weight:700}
+
+/* Channel / product list */
+.chan-total{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.chan-cap{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase;margin:3px 0 14px}
+.bar-stack{display:flex;height:9px;border-radius:6px;overflow:hidden;gap:2px;margin-bottom:16px;background:var(--line-soft)}
+.bar-stack i{height:100%;display:block}
+.chan-list{display:flex;flex-direction:column;gap:11px}
+.chan-row{display:flex;align-items:center;gap:10px;font-size:12.5px}
+.chan-row .sw{width:9px;height:9px;border-radius:3px;flex:none}
+.chan-row .nm{font-weight:500;color:var(--ink-2)}
+.chan-row .vl{margin-left:auto;font-weight:700;color:var(--ink)}
+.chan-row .pc{color:var(--ink-3);font-weight:500;width:42px;text-align:right;font-size:11.5px}
+
+/* Funnel */
+.funnel-card{display:flex;flex-direction:column}
+.funnel{display:flex;flex-direction:column;gap:5px;margin-top:6px;flex:1;justify-content:center}
+.frow{position:relative;height:46px;display:flex;align-items:center;justify-content:center;color:#1a1a1a;
+  font-weight:600;font-size:12.5px;border-radius:4px;transition:filter .15s}
+.frow:hover{filter:brightness(.96)}
+.frow span.s-name{font-weight:600}
+.frow span.s-val{font-weight:700;margin-left:7px}
+.frow.lost{margin-top:8px;background:#f3d6d4 !important;color:#8c2b27;border:1px dashed #e0473f33}
+
+/* Tables */
+.tbl-card{overflow:hidden}
+.tbl-scroll{overflow-x:auto;margin:0 -20px;padding:0 20px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:430px}
+thead th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  text-align:right;padding:0 10px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody td{padding:11px 10px;border-bottom:1px solid var(--line-soft);text-align:right;white-space:nowrap}
+tbody td:first-child{text-align:left;font-weight:600;color:var(--ink)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--line-soft)}
+.cell-sub{font-size:10.5px;color:var(--ink-3);font-weight:500}
+.rank{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--line-soft);
+  font-size:10.5px;font-weight:700;color:var(--ink-2);margin-right:9px}
+.rank.top{background:var(--mb-yellow);color:#000}
+.minibar{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end}
+.minibar .track{width:54px;height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+.minibar .fill{height:100%;background:var(--mb-yellow);border-radius:4px}
+.conv-tag{font-weight:700}
+.branch-pill{font-size:10.5px;color:var(--ink-2);background:var(--line-soft);padding:3px 8px;border-radius:6px;font-weight:600}
+
+/* chart rows */
+.row-2{display:grid;grid-template-columns:1fr 1.1fr;gap:16px;margin-top:16px}
+.row-3{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;margin-top:16px}
+.chart-box{position:relative;height:300px}
+.legend{display:flex;gap:18px;align-items:center}
+.legend i{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.legend i::before{content:"";width:11px;height:11px;border-radius:3px;background:var(--c)}
+
+/* loading / error */
+.state{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;z-index:50;transition:opacity .4s}
+.state.hide{opacity:0;pointer-events:none}
+.spinner{width:40px;height:40px;border:4px solid var(--line);border-top-color:var(--mb-yellow);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.state p{font-size:13px;color:var(--ink-2);font-weight:500;text-align:center}
+.state .big{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px}
+
+@media(max-width:1180px){
+  .overview{grid-template-columns:1fr}
+  .row-2,.row-3{grid-template-columns:1fr}
+  .funnel-card{order:-1}
+}
+@media(max-width:720px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .mid-row{grid-template-columns:1fr}
+  .topbar-inner,.wrap{padding-left:16px;padding-right:16px}
+  .page-title,.divider{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="state" id="state">
+  <div>
+    <div class="spinner" id="spin"></div>
+    <p class="big" id="stateTitle">Loading GGB sales data…</p>
+    <p id="stateMsg">Fetching 20,000 deal records</p>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="mark"></div>
+      <div class="brand-txt"><b>Maybank</b><span>Group Global Banking</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="page-title"><strong>Sales Head</strong> · Performance Command Center</div>
+    <div class="topbar-right">
+      <span class="pill"><span class="dot"></span>Live · FY2026</span>
+      <span class="pill num" id="recPill">— deals</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- FILTERS -->
+  <div class="filters" id="filters">
+    <div class="field"><label>Country</label><select id="f_Country"></select></div>
+    <div class="field"><label>Sub-Region</label><select id="f_Region"></select></div>
+    <div class="field"><label>Branch</label><select id="f_Branch"></select></div>
+    <div class="field"><label>Relationship Manager</label><select id="f_Relationship_Manager"></select></div>
+    <div class="field"><label>Customer Segment</label><select id="f_Customer_Segment"></select></div>
+    <button class="reset-btn" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="section-label">Overview</div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- Composite overview -->
+  <div class="overview" style="margin-top:16px">
+    <div class="left-col">
+      <div class="mid-row">
+        <div class="stack">
+          <div class="kpi mini" id="pipelineCard"></div>
+          <div class="card" id="targetCard"></div>
+        </div>
+        <!-- Deals by Product -->
+        <div class="card" id="productCard">
+          <div class="card-head">
+            <div class="card-title">Deals by Product</div>
+            <div class="card-sub">share of pipeline volume</div>
+          </div>
+          <div id="productBody"></div>
+        </div>
+      </div>
+      <!-- Branch table + line chart sit below in row-2 -->
+    </div>
+
+    <!-- Funnel -->
+    <div class="card funnel-card">
+      <div class="card-head">
+        <div class="card-title">Pipeline Funnel</div>
+        <div class="card-sub" id="funnelSub"></div>
+      </div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </div>
+
+  <!-- Branch perf + Leads vs Conversions -->
+  <div class="row-2">
+    <div class="card tbl-card">
+      <div class="card-head">
+        <div class="card-title">Branch-Wise Performance</div>
+        <div class="card-sub">ranked by deal volume</div>
+      </div>
+      <div class="tbl-scroll">
+        <table id="branchTable">
+          <thead><tr><th>Branch</th><th>Deals</th><th>Pipeline</th><th>Won Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Deals vs Conversions</div>
+        <div class="legend">
+          <i style="--c:var(--mb-yellow)">Total Deals</i>
+          <i style="--c:var(--ink)">Won Deals</i>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="lineChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Win rate by industry + RM leaderboard -->
+  <div class="row-3">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Win Rate by Industry</div>
+        <div class="legend">
+          <i style="--c:var(--mb-yellow)">Deals</i>
+          <i style="--c:var(--ink)">Won</i>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="industryChart"></canvas></div>
+    </div>
+
+    <div class="card tbl-card">
+      <div class="card-head">
+        <div class="card-title">Relationship Manager Leaderboard</div>
+        <div class="card-sub">ranked by pipeline value</div>
+      </div>
+      <div class="tbl-scroll">
+        <table id="rmTable">
+          <thead><tr><th>RM</th><th>Branch</th><th>Deals</th><th>Won</th><th>Conv %</th><th>Pipeline</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Maybank GGB Sales Head Dashboard
+   Reads deal data from the hosted CSV, computes all metrics
+   client-side, supports cascading filters.
+   ============================================================ */
+
+const DATA_SOURCES = [
+  "MaybankPOCGGBSalesHeadDS.csv",                                              // same-repo relative
+  "https://dips-09.github.io/GGBSalesHeadDashboard/MaybankPOCGGBSalesHeadDS.csv" // absolute fallback
+];
+
+const C = {
+  yellow:"#ffcf01", yellow2:"#ffdb45", amber:"#e8ab00", amberDeep:"#a9760b",
+  ink:"#16181d", ink2:"#5a6472", ink3:"#8b93a1", line:"#e7eaf0", lineSoft:"#f0f2f6",
+  pos:"#149a5a", neg:"#e0473f"
+};
+const FILTER_KEYS = ["Country","Region","Branch","Relationship_Manager","Customer_Segment"];
+const NUM_COLS = ["Pipeline_Value_MYR","Revenue_MYR","AUM_MYR","Target_Revenue_MYR","Deal_Probability","Cross_Sell_Count"];
+const STAGE_ORDER = ["Prospect","Qualified","Proposed","Negotiating","Won"];
+const PROD_COLORS = ["#ffcf01","#f0b400","#d99a00","#16181d","#5a6472","#b9842a"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+let RAW = [];                 // all rows
+const filters = {};           // active selections
+let lineChart=null, industryChart=null;
+
+/* ---------- formatting ---------- */
+const f0 = n => Math.round(n).toLocaleString("en-US");
+function money(v){
+  const a = Math.abs(v);
+  if(a>=1e9) return (v/1e9).toFixed(1)+"B";
+  if(a>=1e6) return (v/1e6).toFixed(1)+"M";
+  if(a>=1e3) return (v/1e3).toFixed(0)+"K";
+  return f0(v);
+}
+const pct = (n,d) => d? (100*n/d) : 0;
+const numv = (r,c) => { const x=parseFloat(r[c]); return isNaN(x)?0:x; };
+
+/* ---------- load ---------- */
+async function load(){
+  for(const url of DATA_SOURCES){
+    try{
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const text = await res.text();
+      const parsed = Papa.parse(text,{header:true,skipEmptyLines:true});
+      const rows = parsed.data.filter(r => r && r.Deal_ID);
+      if(rows.length) return rows;
+      throw new Error("no rows");
+    }catch(e){ console.warn("Source failed:",url,e.message); }
+  }
+  throw new Error("All data sources failed");
+}
+
+/* ---------- filtering ---------- */
+function rowsMatching(except){
+  return RAW.filter(r => FILTER_KEYS.every(k =>
+    k===except || !filters[k] || r[k]===filters[k]
+  ));
+}
+function applied(){ return rowsMatching(null); }
+
+/* cascading option lists: each select shows values valid given the OTHER active filters */
+function buildFilterOptions(){
+  FILTER_KEYS.forEach(k=>{
+    const sel = document.getElementById("f_"+k);
+    const pool = rowsMatching(k);
+    const vals = [...new Set(pool.map(r=>r[k]).filter(Boolean))].sort();
+    if(filters[k] && !vals.includes(filters[k])) filters[k]=""; // selection no longer valid
+    const cur = filters[k]||"";
+    const label = k==="Region"?"All Sub-Regions":k==="Relationship_Manager"?"All RMs":"All "+k.replace(/_/g," ")+"s";
+    sel.innerHTML = `<option value="">${label}</option>` +
+      vals.map(v=>`<option value="${v.replace(/"/g,'&quot;')}"${v===cur?" selected":""}>${v}</option>`).join("");
+  });
+}
+
+/* ---------- aggregation by month for deltas ---------- */
+function monthIndex(r){ const m=(r.Deal_Date||"").slice(5,7); return m?parseInt(m,10)-1:-1; }
+function lastTwoMonths(rows){
+  // returns {lastM, prevM} = highest two month indices present
+  const present=[...new Set(rows.map(monthIndex).filter(i=>i>=0))].sort((a,b)=>a-b);
+  return { last: present[present.length-1], prev: present[present.length-2] };
+}
+function deltaChip(curVal, prevVal, kind){
+  // kind: "num" (ratio %), "pp" (point diff)
+  if(prevVal==null || curVal==null || (kind==="num" && !prevVal)){
+    return `<span class="delta flat">—</span>`;
+  }
+  let diff, txt, dir;
+  if(kind==="pp"){ diff = curVal-prevVal; txt=(diff>=0?"+":"")+diff.toFixed(1)+"pp"; }
+  else { diff = pct(curVal-prevVal, prevVal); txt=(diff>=0?"▲ ":"▼ ")+Math.abs(diff).toFixed(1)+"%"; }
+  dir = diff>0.05?"up":diff<-0.05?"down":"flat";
+  if(kind==="pp"){ dir = diff>0.05?"up":diff<-0.05?"down":"flat"; txt=(diff>=0?"▲ ":"▼ ")+Math.abs(diff).toFixed(1)+"pp"; }
+  return `<span class="delta ${dir}">${txt}<span class="mo">vs prev mo</span></span>`;
+}
+
+/* monthly metric helper */
+function metricByMonth(rows, fn){
+  const buckets = Array.from({length:12},()=>[]);
+  rows.forEach(r=>{ const i=monthIndex(r); if(i>=0) buckets[i].push(r); });
+  return buckets.map(b=>fn(b));
+}
+
+/* ---------- KPI icons ---------- */
+const ICON = {
+  deals:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  rate:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>`,
+  newc:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`,
+  aum:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  pipe:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  const rows = applied();
+  const n = rows.length;
+  document.getElementById("recPill").textContent = f0(n)+" deals";
+
+  /* ----- core aggregates ----- */
+  const won = rows.filter(r=>r.Stage==="Won");
+  const wonN = won.length;
+  const lostN = rows.filter(r=>r.Stage==="Lost").length;
+  const newC = rows.filter(r=>r.Customer_Status==="New").length;
+  const pipeTotal = rows.reduce((s,r)=>s+numv(r,"Pipeline_Value_MYR"),0);
+  const revTotal  = rows.reduce((s,r)=>s+numv(r,"Revenue_MYR"),0);
+  const tgtTotal  = rows.reduce((s,r)=>s+numv(r,"Target_Revenue_MYR"),0);
+  const aumTotal  = rows.reduce((s,r)=>s+numv(r,"AUM_MYR"),0);
+  const wonValue  = won.reduce((s,r)=>s+numv(r,"Revenue_MYR"),0);
+  const winRate   = pct(wonN,n);
+  const targetAch = pct(revTotal,tgtTotal);
+  const openOpps  = rows.filter(r=>r.Stage!=="Won"&&r.Stage!=="Lost").length;
+
+  /* ----- month-over-month deltas ----- */
+  const {last,prev} = lastTwoMonths(rows);
+  const byMonth = (fn)=> { const a=metricByMonth(rows,fn); return {c: last>=0?a[last]:null, p: prev>=0?a[prev]:null}; };
+  const dDeals = byMonth(b=>b.length);
+  const dRate  = byMonth(b=>pct(b.filter(r=>r.Stage==="Won").length,b.length));
+  const dNew   = byMonth(b=>b.filter(r=>r.Customer_Status==="New").length);
+  const dAum   = byMonth(b=>b.reduce((s,r)=>s+numv(r,"AUM_MYR"),0));
+  const dPipe  = byMonth(b=>b.reduce((s,r)=>s+numv(r,"Pipeline_Value_MYR"),0));
+
+  /* ----- KPI cards ----- */
+  const kpis = [
+    {label:"Total Deals", icon:ICON.deals, value:f0(n), delta:deltaChip(dDeals.c,dDeals.p,"num")},
+    {label:"Conversion Rate", icon:ICON.rate, value:winRate.toFixed(1), unit:"%", delta:deltaChip(dRate.c,dRate.p,"pp")},
+    {label:"New Customers", icon:ICON.newc, value:f0(newC), delta:deltaChip(dNew.c,dNew.p,"num")},
+    {label:"AUM Under Mgmt", icon:ICON.aum, value:"MYR "+money(aumTotal), delta:deltaChip(dAum.c,dAum.p,"num")}
+  ];
+  document.getElementById("kpiGrid").innerHTML = kpis.map(k=>`
+    <div class="kpi">
+      <div class="k-top"><span class="k-label">${k.label}</span><span class="k-icon">${k.icon}</span></div>
+      <div class="k-value num">${k.value}${k.unit?`<small>${k.unit}</small>`:""}</div>
+      ${k.delta}
+    </div>`).join("");
+
+  /* ----- Pipeline mini card ----- */
+  document.getElementById("pipelineCard").innerHTML = `
+    <div class="k-top"><span class="k-label">Pipeline Value</span><span class="k-icon">${ICON.pipe}</span></div>
+    <div class="k-value num">MYR ${money(pipeTotal)}</div>
+    ${deltaChip(dPipe.c,dPipe.p,"num")}
+    <div class="card-sub" style="margin-top:2px">${f0(openOpps)} open opportunities</div>`;
+
+  /* ----- Target Achievement card ----- */
+  const ringP = Math.min(targetAch,100);
+  document.getElementById("targetCard").innerHTML = `
+    <div class="card-head"><div class="card-title">Target Achievement</div></div>
+    <div class="ring-wrap">
+      <div class="ring" style="--p:${ringP}"><b class="num">${targetAch.toFixed(0)}%</b></div>
+      <div class="ring-meta">
+        Revenue <b class="num">MYR ${money(revTotal)}</b><br>
+        Target <b class="num">MYR ${money(tgtTotal)}</b><br>
+        Won value <b class="num">MYR ${money(wonValue)}</b>
+      </div>
+    </div>`;
+
+  /* ----- Deals by Product ----- */
+  const prodMap = {};
+  rows.forEach(r=>{ const p=r.Product||"—"; (prodMap[p]=prodMap[p]||{c:0,pipe:0}); prodMap[p].c++; prodMap[p].pipe+=numv(r,"Pipeline_Value_MYR"); });
+  const prods = Object.entries(prodMap).sort((a,b)=>b[1].c-a[1].c);
+  const prodTotal = prods.reduce((s,p)=>s+p[1].c,0)||1;
+  document.getElementById("productBody").innerHTML = `
+    <div class="chan-total num">${f0(n)}</div>
+    <div class="chan-cap">Total deals · ${prods.length} product lines</div>
+    <div class="bar-stack">
+      ${prods.map((p,i)=>`<i style="width:${pct(p[1].c,prodTotal)}%;background:${PROD_COLORS[i%PROD_COLORS.length]}"></i>`).join("")}
+    </div>
+    <div class="chan-list">
+      ${prods.map((p,i)=>`
+        <div class="chan-row">
+          <span class="sw" style="background:${PROD_COLORS[i%PROD_COLORS.length]}"></span>
+          <span class="nm">${p[0]}</span>
+          <span class="vl num">${f0(p[1].c)}</span>
+          <span class="pc num">${pct(p[1].c,prodTotal).toFixed(0)}%</span>
+        </div>`).join("")}
+    </div>`;
+
+  /* ----- Funnel (stage distribution) ----- */
+  const stageMap={}; rows.forEach(r=>{ stageMap[r.Stage]=(stageMap[r.Stage]||0)+1; });
+  const active = STAGE_ORDER.map(s=>({s,v:stageMap[s]||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const maxV = active.length?active[0].v:1;
+  const funnelEl = document.getElementById("funnel");
+  let html = active.map((x,i)=>{
+    const w = 40 + 60*(x.v/maxV);                      // 40%..100% width
+    const t = active.length>1? i/(active.length-1):0;  // gradient pos
+    const col = `linear-gradient(90deg,
+        hsl(${48-6*t} ${100-18*t}% ${52+8*t}%),
+        hsl(${46-4*t} ${100-14*t}% ${58+6*t}%))`;
+    return `<div class="frow" style="width:${w}%;margin:0 auto;background:${col}">
+        <span class="s-name">${x.s}</span><span class="s-val num">${f0(x.v)}</span></div>`;
+  }).join("");
+  html += `<div class="frow lost" style="width:42%;margin:8px auto 0">
+      <span class="s-name">Lost</span><span class="s-val num">${f0(lostN)}</span></div>`;
+  funnelEl.innerHTML = html;
+  document.getElementById("funnelSub").textContent = `${winRate.toFixed(1)}% win · ${f0(openOpps)} open`;
+
+  /* ----- Branch table ----- */
+  const brMap={};
+  rows.forEach(r=>{ const b=r.Branch||"—"; const o=(brMap[b]=brMap[b]||{deals:0,pipe:0,won:0,wonVal:0});
+    o.deals++; o.pipe+=numv(r,"Pipeline_Value_MYR");
+    if(r.Stage==="Won"){o.won++; o.wonVal+=numv(r,"Revenue_MYR");} });
+  const branches = Object.entries(brMap).sort((a,b)=>b[1].deals-a[1].deals).slice(0,8);
+  const maxWonVal = Math.max(1,...branches.map(b=>b[1].wonVal));
+  document.querySelector("#branchTable tbody").innerHTML = branches.map(([name,o],i)=>`
+    <tr>
+      <td><span class="rank ${i<3?"top":""}">${i+1}</span>${name}</td>
+      <td class="num">${f0(o.deals)}</td>
+      <td class="num">MYR ${money(o.pipe)}</td>
+      <td>
+        <div class="minibar">
+          <span class="num">${pct(o.won,o.deals).toFixed(0)}%</span>
+          <span class="track"><span class="fill" style="width:${pct(o.wonVal,maxWonVal)}%"></span></span>
+          <b class="num" style="min-width:54px;text-align:right">MYR ${money(o.wonVal)}</b>
+        </div>
+      </td>
+    </tr>`).join("");
+
+  /* ----- RM leaderboard ----- */
+  const rmMap={};
+  rows.forEach(r=>{ const m=r.Relationship_Manager||"—";
+    const o=(rmMap[m]=rmMap[m]||{deals:0,won:0,pipe:0,branches:{}});
+    o.deals++; o.pipe+=numv(r,"Pipeline_Value_MYR");
+    if(r.Stage==="Won")o.won++;
+    o.branches[r.Branch]=(o.branches[r.Branch]||0)+1; });
+  const rms = Object.entries(rmMap).sort((a,b)=>b[1].pipe-a[1].pipe);
+  const maxRmWon = Math.max(1,...rms.map(r=>r[1].won));
+  document.querySelector("#rmTable tbody").innerHTML = rms.map(([name,o],i)=>{
+    const mainBranch = Object.entries(o.branches).sort((a,b)=>b[1]-a[1])[0][0];
+    const conv = pct(o.won,o.deals);
+    return `<tr>
+      <td><span class="rank ${i<3?"top":""}">${i+1}</span>${name}</td>
+      <td><span class="branch-pill">${mainBranch}</span></td>
+      <td class="num">${f0(o.deals)}</td>
+      <td><div class="minibar"><span class="track"><span class="fill" style="width:${pct(o.won,maxRmWon)}%"></span></span><b class="num">${f0(o.won)}</b></div></td>
+      <td class="num conv-tag" style="color:${conv>=26?C.pos:conv<24?C.neg:C.ink2}">${conv.toFixed(1)}%</td>
+      <td class="num">MYR ${money(o.pipe)}</td>
+    </tr>`;
+  }).join("");
+
+  /* ----- Line chart: deals vs won by month ----- */
+  const totalByMonth = metricByMonth(rows,b=>b.length);
+  const wonByMonth   = metricByMonth(rows,b=>b.filter(r=>r.Stage==="Won").length);
+  const present = totalByMonth.map((v,i)=>v>0?i:-1).filter(i=>i>=0);
+  const labels = present.map(i=>MONTHS[i]);
+  drawLine(labels, present.map(i=>totalByMonth[i]), present.map(i=>wonByMonth[i]));
+
+  /* ----- Industry win-rate chart ----- */
+  const indMap={};
+  rows.forEach(r=>{ const k=r.Industry||"—"; const o=(indMap[k]=indMap[k]||{deals:0,won:0});
+    o.deals++; if(r.Stage==="Won")o.won++; });
+  const inds = Object.entries(indMap).sort((a,b)=>b[1].deals-a[1].deals);
+  drawIndustry(
+    inds.map(([k,o])=>`${k} · ${pct(o.won,o.deals).toFixed(0)}%`),
+    inds.map(([,o])=>o.deals),
+    inds.map(([,o])=>o.won)
+  );
+}
+
+/* ---------- Chart.js renderers ---------- */
+function baseGrid(){ return {grid:{color:C.lineSoft,drawBorder:false},ticks:{color:C.ink3,font:{family:"Poppins",size:11}}}; }
+function drawLine(labels, total, won){
+  const ctx=document.getElementById("lineChart");
+  if(lineChart) lineChart.destroy();
+  const g=ctx.getContext("2d").createLinearGradient(0,0,0,300);
+  g.addColorStop(0,"rgba(255,207,1,.28)"); g.addColorStop(1,"rgba(255,207,1,0)");
+  lineChart=new Chart(ctx,{type:"line",
+    data:{labels,datasets:[
+      {label:"Total Deals",data:total,borderColor:C.amber,backgroundColor:g,fill:true,tension:.4,
+        borderWidth:3,pointRadius:3,pointBackgroundColor:C.yellow,pointBorderColor:"#fff",pointBorderWidth:2,pointHoverRadius:5},
+      {label:"Won Deals",data:won,borderColor:C.ink,backgroundColor:"transparent",fill:false,tension:.4,
+        borderWidth:2.5,pointRadius:3,pointBackgroundColor:C.ink,pointBorderColor:"#fff",pointBorderWidth:2,pointHoverRadius:5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:"#16181d",padding:12,cornerRadius:10,titleFont:{family:"Poppins",weight:"600"},
+          bodyFont:{family:"Poppins"},displayColors:true,usePointStyle:true}},
+      interaction:{mode:"index",intersect:false},
+      scales:{x:baseGrid(),y:{...baseGrid(),beginAtZero:true}}}
+  });
+}
+function drawIndustry(labels, deals, won){
+  const ctx=document.getElementById("industryChart");
+  if(industryChart) industryChart.destroy();
+  industryChart=new Chart(ctx,{type:"bar",
+    data:{labels,datasets:[
+      {label:"Deals",data:deals,backgroundColor:C.yellow,borderRadius:5,barPercentage:.78,categoryPercentage:.7},
+      {label:"Won",data:won,backgroundColor:C.ink,borderRadius:5,barPercentage:.78,categoryPercentage:.7}
+    ]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:"#16181d",padding:12,cornerRadius:10,titleFont:{family:"Poppins",weight:"600"},bodyFont:{family:"Poppins"}}},
+      scales:{x:{...baseGrid(),beginAtZero:true},
+        y:{grid:{display:false,drawBorder:false},ticks:{color:C.ink2,font:{family:"Poppins",size:11.5,weight:"600"}}}}}
+  });
+}
+
+/* ---------- events ---------- */
+function wireFilters(){
+  FILTER_KEYS.forEach(k=>{
+    document.getElementById("f_"+k).addEventListener("change",e=>{
+      filters[k]=e.target.value;
+      buildFilterOptions();   // cascade
+      render();
+    });
+  });
+  document.getElementById("resetBtn").addEventListener("click",()=>{
+    FILTER_KEYS.forEach(k=>filters[k]="");
+    buildFilterOptions(); render();
+  });
+}
+
+/* ---------- boot ---------- */
+(async function init(){
+  try{
+    RAW = await load();
+    FILTER_KEYS.forEach(k=>filters[k]="");
+    buildFilterOptions();
+    wireFilters();
+    render();
+    const s=document.getElementById("state"); s.classList.add("hide"); setTimeout(()=>s.remove(),450);
+  }catch(e){
+    document.getElementById("spin").style.display="none";
+    document.getElementById("stateTitle").textContent="Couldn't load the data";
+    document.getElementById("stateMsg").innerHTML="Make sure <b>MaybankPOCGGBSalesHeadDS.csv</b> is hosted alongside this page.<br>"+e.message;
+  }
+})();
+</script>
+</body>
+</html>
